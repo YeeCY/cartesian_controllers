@@ -93,6 +93,7 @@ class JointToCartesianController
     std::string                m_end_effector_link;
     std::string                m_robot_base_link;
     std::string                m_target_frame_topic;
+    KDL::Chain                 m_robot_chain;
     KDL::JntArray              m_positions;
     KDL::JntArray              m_velocities;
     std::vector<std::string>   m_joint_names;

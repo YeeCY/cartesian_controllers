@@ -70,15 +70,16 @@ init(HardwareInterface* hw, ros::NodeHandle& nh)
     return true;
   }
 
+  ros::NodeHandle gnh;
   std::string robot_description;
   urdf::Model robot_model;
   KDL::Tree   robot_tree;
   KDL::Chain  robot_chain;
 
   // Get controller specific configuration
-  if (!nh.getParam("/robot_description",robot_description))
+  if (!gnh.getParam("robot_description",robot_description))
   {
-    ROS_ERROR("Failed to load '/robot_description' from parameter server");
+    ROS_ERROR_STREAM("Failed to load " << gnh.getNamespace() + "/robot_description" << " from parameter server");
     return false;
   }
   if (!nh.getParam("robot_base_link",m_robot_base_link))
@@ -131,7 +132,7 @@ init(HardwareInterface* hw, ros::NodeHandle& nh)
     if (!robot_model.getJoint(m_joint_names[i]))
     {
       const std::string error = ""
-        "Joint " + m_joint_names[i] + " does not appear in /robot_description";
+        "Joint " + m_joint_names[i] + " does not appear in robot_description";
       ROS_ERROR_STREAM(error);
       throw std::runtime_error(error);
     }

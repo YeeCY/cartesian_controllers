@@ -68,6 +68,7 @@ void MotionControlHandle<HardwareInterface>::
 starting(const ros::Time& time)
 {
   m_current_pose = getEndEffectorPose();
+  // ROS_INFO_STREAM("[MotionControlHandle] starting pose: " << m_current_pose);
   m_server->setPose(m_marker.name,m_current_pose.pose);
   m_server->applyChanges();
 }
@@ -94,15 +95,15 @@ template <class HardwareInterface>
 bool MotionControlHandle<HardwareInterface>::
 init(HardwareInterface* hw, ros::NodeHandle& nh)
 {
+  ros::NodeHandle gnh;
   std::string robot_description;
   urdf::Model robot_model;
   KDL::Tree   robot_tree;
-  KDL::Chain  robot_chain;
 
   // Get configuration from parameter server
-  if (!nh.getParam("/robot_description",robot_description))
+  if (!gnh.getParam("robot_description",robot_description))
   {
-    ROS_ERROR("Failed to load '/robot_description' from parameter server");
+    ROS_ERROR_STREAM("Failed to load " << gnh.getNamespace() + "/robot_description" << " from parameter server");
     return false;
   }
   if (!nh.getParam("robot_base_link",m_robot_base_link))
@@ -126,7 +127,7 @@ init(HardwareInterface* hw, ros::NodeHandle& nh)
   }
 
   // Publishers
-  m_pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(m_target_frame_topic,10);
+  m_pose_publisher = gnh.advertise<geometry_msgs::PoseStamped>(m_target_frame_topic,10);
 
   // Build a kinematic chain of the robot
   if (!robot_model.initString(robot_description))
@@ -139,7 +140,7 @@ init(HardwareInterface* hw, ros::NodeHandle& nh)
     ROS_ERROR("Failed to parse KDL tree from urdf model");
     return false;
   }
-  if (!robot_tree.getChain(m_robot_base_link,m_end_effector_link,robot_chain))
+  if (!robot_tree.getChain(m_robot_base_link,m_end_effector_link,m_robot_chain))
   {
     ROS_ERROR_STREAM("Failed to parse robot chain from urdf model.");
     return false;
@@ -159,7 +160,7 @@ init(HardwareInterface* hw, ros::NodeHandle& nh)
   }
 
   // Initialize kinematics
-  m_fk_solver.reset(new KDL::ChainFkSolverPos_recursive(robot_chain));
+  m_fk_solver.reset(new KDL::ChainFkSolverPos_recursive(m_robot_chain));
   m_current_pose = getEndEffectorPose();
 
   // Configure the interactive marker for usage in RViz
@@ -167,7 +168,7 @@ init(HardwareInterface* hw, ros::NodeHandle& nh)
     nh.getNamespace(), "", false));
   m_marker.header.frame_id = m_robot_base_link;
   m_marker.header.stamp = ros::Time(0);   // makes frame_id const
-  m_marker.scale = 0.1;
+  m_marker.scale = 0.2;
   m_marker.name = "motion_control_handle";
   m_marker.pose = m_current_pose.pose;
   m_marker.description = "6D control of link: " + m_end_effector_link;
